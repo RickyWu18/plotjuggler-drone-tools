@@ -6,6 +6,7 @@ cmake_policy(SET CMP0177 NEW)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
 
 # ── Qt ─────────────────────────────────────────────────────────────────────
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Xml Network)
@@ -46,3 +47,4 @@ message(STATUS "[PJ-Drone] PJ_PLUGIN_INSTALL_DIR = ${PJ_PLUGIN_INSTALL_DIRECTORY
 
 # ── Plugins ────────────────────────────────────────────────────────────────
 # add_subdirectory(PluginTemplate)
+add_subdirectory(DataStreamMavlink)
