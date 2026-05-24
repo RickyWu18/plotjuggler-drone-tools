@@ -38,7 +38,7 @@ if(Qt5SerialPort_FOUND AND Qt5Network_FOUND)
     ${PJ_BASE_LIB})
 
   install(TARGETS DataStreamMavlink
-    DESTINATION ${PJ_PLUGIN_INSTALL_DIRECTORY})
+    RUNTIME DESTINATION ${PJ_PLUGIN_INSTALL_DIRECTORY}/$<CONFIG>)
 else()
   message(WARNING "[DataStreamMavlink] Qt5::SerialPort or Qt5::Network not found. Skipping.")
 endif()

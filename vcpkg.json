@@ -1,0 +1,8 @@
+{
+  "name": "plotjuggler-drone",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "qt5-base",
+    "qt5-serialport"
+  ]
+}

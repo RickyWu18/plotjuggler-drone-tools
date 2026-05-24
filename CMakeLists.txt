@@ -28,7 +28,7 @@ find_library(PJ_QWT_LIB  NAMES plotjuggler_qwt  REQUIRED
 set(PJ_INCLUDE_DIR "${PJ_INSTALL}/include")
 
 # Plugins are installed alongside plotjuggler.exe so they are auto-discovered.
-set(PJ_PLUGIN_INSTALL_DIRECTORY "${PJ_INSTALL}/bin"
+set(PJ_PLUGIN_INSTALL_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../../build/Plotjuggler/bin"
     CACHE PATH "Destination for plugin DLLs/SOs")
 
 # Read PlotJuggler version from the installed ConfigVersion file
@@ -44,6 +44,11 @@ message(STATUS "[PJ-Drone] PJ_VERSION            = ${PJ_MAJOR_VERSION}.${PJ_MINO
 message(STATUS "[PJ-Drone] PJ_BASE_LIB           = ${PJ_BASE_LIB}")
 message(STATUS "[PJ-Drone] PJ_QWT_LIB            = ${PJ_QWT_LIB}")
 message(STATUS "[PJ-Drone] PJ_PLUGIN_INSTALL_DIR = ${PJ_PLUGIN_INSTALL_DIRECTORY}")
+
+# ── Output directories ─────────────────────────────────────────────────────
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ── Plugins ────────────────────────────────────────────────────────────────
 # add_subdirectory(PluginTemplate)

@@ -5,8 +5,8 @@ A self-maintained collection of [PlotJuggler](https://github.com/facontidavide/P
 ## Prerequisites
 
 - CMake >= 3.16
-- Visual Studio 2022 (MSVC 19+)
-- Qt5 (Core, Widgets, Xml, Network)
+- Visual Studio 2019 (MSVC 19+)
+- [vcpkg](https://github.com/microsoft/vcpkg) (Qt5 is resolved automatically via `vcpkg.json`)
 - PlotJuggler built and installed into the workspace `install/` directory
 
 Expected workspace layout:
@@ -20,24 +20,45 @@ plotjuggler_ws/
 └── install/                 <- PlotJuggler install prefix (bin/, include/, lib/)
 ```
 
-If PlotJuggler is not yet installed, build it first:
+If PlotJuggler is not yet installed, follow the [PlotJuggler compile document](https://github.com/PlotJuggler/PlotJuggler/blob/main/COMPILE.md) to build it first.
+
+Clone with submodules in one step:
 
 ```batch
-cmake -S src\Plotjuggler -B build\Plotjuggler -DCMAKE_INSTALL_PREFIX=install
-cmake --build build\Plotjuggler --config Release --target install
+git clone --recurse-submodules https://github.com/RickyWu18/plotjuggler-drone.git
 ```
+
+Or if already cloned, initialise manually:
+
+```batch
+git submodule update --init --recursive
+```
+
 
 ## Configure
 
+Qt5 is resolved via **vcpkg** (same toolchain used by PlotJuggler). Set `VCPKG_ROOT` to your vcpkg installation if it is not already in your environment:
+
 ```batch
-cmake -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone
+set VCPKG_ROOT=C:\path\to\vcpkg
+```
+
+Then configure:
+
+```batch
+cmake -G "Visual Studio 16" ^
+      -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone ^
+      -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake
 ```
 
 CMake looks for PlotJuggler at `../../install` relative to this repo by default.
 Override if your install is elsewhere:
 
 ```batch
-cmake -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone -DPJ_INSTALL=C:\path\to\install
+cmake -G "Visual Studio 16" ^
+      -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone ^
+      -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake ^
+      -DPJ_INSTALL=C:\path\to\install
 ```
 
 ## Build and Install
@@ -46,17 +67,21 @@ cmake -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone -DPJ_INSTALL=C:\path\t
 cmake --build build\PlotJuggler-Drone --config Release --target install
 ```
 
-The compiled `.dll` is copied to `install\bin\` alongside `plotjuggler.exe` and is
+The compiled `.dll` is copied to `build\Plotjuggler\bin\<Config>\` alongside `plotjuggler.exe` and is
 loaded automatically when PlotJuggler starts.
 
 ## Repository Structure
 
 ```
 src/PlotJuggler-Drone/
-├── CMakeLists.txt       <- top-level: finds Qt5 and PlotJuggler, adds plugin subdirs
-├── cmake/               <- CMake modules (e.g. CPM.cmake)
+├── CMakeLists.txt             <- top-level: finds Qt5 and PlotJuggler, adds plugin subdirs
+├── vcpkg.json                 <- vcpkg dependencies (Qt5)
+├── conanfile.txt              <- Conan generator stubs
 ├── README.md
-└── <PluginName>/        <- one subdirectory per plugin
+├── 3rdparty/
+│   └── c_library_v2/          <- MAVLink C headers (git submodule)
+├── PluginTemplate/            <- minimal template to copy when adding a new plugin
+└── <PluginName>/              <- one subdirectory per plugin
     ├── CMakeLists.txt
     ├── <plugin>.h
     └── <plugin>.cpp
@@ -89,7 +114,7 @@ target_link_libraries(DataStreamDrone PRIVATE
     ${PJ_BASE_LIB} ${PJ_QWT_LIB})
 
 install(TARGETS DataStreamDrone
-    DESTINATION ${PJ_PLUGIN_INSTALL_DIRECTORY})
+    RUNTIME DESTINATION ${PJ_PLUGIN_INSTALL_DIRECTORY}/$<CONFIG>)
 ```
 
 3. Inherit the appropriate base class and implement its interface:

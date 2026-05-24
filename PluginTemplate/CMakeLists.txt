@@ -22,4 +22,4 @@ target_link_libraries(DronePluginTemplate PRIVATE
     ${PJ_QWT_LIB})
 
 install(TARGETS DronePluginTemplate
-    DESTINATION ${PJ_PLUGIN_INSTALL_DIRECTORY})
+    RUNTIME DESTINATION ${PJ_PLUGIN_INSTALL_DIRECTORY}/$<CONFIG>)
