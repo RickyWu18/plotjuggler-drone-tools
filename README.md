@@ -1,144 +1,74 @@
 # PlotJuggler-Drone Plugins
 
-A self-maintained collection of [PlotJuggler](https://github.com/facontidavide/PlotJuggler) plugins for drone-related data visualization and streaming.
+> A self-maintained collection of [PlotJuggler](https://github.com/facontidavide/PlotJuggler) plugins for drone telemetry visualization and live data streaming.
 
-## Prerequisites
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
-- CMake >= 3.16
-- Visual Studio 2019 (MSVC 19+)
-- [vcpkg](https://github.com/microsoft/vcpkg) (Qt5 is resolved automatically via `vcpkg.json`)
-- PlotJuggler built and installed into the workspace `install/` directory
+---
 
-Expected workspace layout:
+## Overview
 
-```
-plotjuggler_ws/
-├── src/
-│   ├── Plotjuggler/         <- PlotJuggler source
-│   └── PlotJuggler-Drone/   <- this repo
-├── build/
-└── install/                 <- PlotJuggler install prefix (bin/, include/, lib/)
-```
+PlotJuggler is a fast, open-source time-series visualization tool. This repository extends it with drone-specific plugins — primarily targeting MAVLink-based systems such as PX4 and ArduPilot — so that engineers and researchers can stream, inspect, and analyze flight telemetry directly inside PlotJuggler without any extra middleware.
 
-If PlotJuggler is not yet installed, follow the [PlotJuggler compile document](https://github.com/PlotJuggler/PlotJuggler/blob/main/COMPILE.md) to build it first.
+<!-- TODO: Add a screenshot or GIF of the plugin streaming data inside PlotJuggler -->
 
-Clone with submodules in one step:
+---
 
-```batch
-git clone --recurse-submodules https://github.com/RickyWu18/plotjuggler-drone.git
-```
+## Available Plugins
 
-Or if already cloned, initialise manually:
+| Plugin | Description |
+|---|---|
+| **DataStreamMavlink** | Streams live MAVLink telemetry over UDP, TCP, or Serial into PlotJuggler. Automatically discovers all message fields and populates them as time-series. Includes a built-in **Message Interval** dialog to inspect and tune per-message update rates on the vehicle. |
 
-```batch
-git submodule update --init --recursive
-```
+### DataStreamMavlink — Feature Highlights
 
+- **Three transports:** UDP (default port 14550), TCP client, and Serial port — switchable from the connection dialog.
+- **Zero-config field discovery:** every numeric field in every MAVLink message is automatically mapped to a plot series named `mav/<sysid>.<compid>/<MSG_NAME>/<field>`.
+- **Multi-vehicle:** differentiates streams by `sysid.compid`, so data from multiple vehicles on the same link is kept separate.
+- **Message Interval control:** via the **"Message Intervals…"** toolbar action, view live message rates and send `SET_MESSAGE_INTERVAL` commands back to the vehicle to tune what gets streamed and how fast.
 
-## Configure
+---
 
-Qt5 is resolved via **vcpkg** (same toolchain used by PlotJuggler). Set `VCPKG_ROOT` to your vcpkg installation if it is not already in your environment:
+## How to Use
 
-```batch
-set VCPKG_ROOT=C:\path\to\vcpkg
-```
+### 1. Install PlotJuggler
 
-Then configure:
+Download and install the latest PlotJuggler release from the [official GitHub releases page](https://github.com/facontidavide/PlotJuggler/releases).
 
-```batch
-cmake -G "Visual Studio 16" ^
-      -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone ^
-      -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake
-```
+### 2. Download the plugin
 
-CMake looks for PlotJuggler at `../../install` relative to this repo by default.
-Override if your install is elsewhere:
+Grab the pre-built plugin binary for your platform from the [Releases](https://github.com/RickyWu18/plotjuggler-drone/releases) page of this repository:
 
-```batch
-cmake -G "Visual Studio 16" ^
-      -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone ^
-      -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake ^
-      -DPJ_INSTALL=C:\path\to\install
-```
+| Platform | File |
+|---|---|
+| Windows | `DataStreamMavlink.dll` |
+| Linux | `libDataStreamMavlink.so` |
 
-## Build and Install
+### 3. Drop it into the PlotJuggler plugin folder
 
-```batch
-cmake --build build\PlotJuggler-Drone --config Release --target install
-```
+Place the file in the directory where PlotJuggler looks for plugins:
 
-The compiled `.dll` is copied to `build\Plotjuggler\bin\<Config>\` alongside `plotjuggler.exe` and is
-loaded automatically when PlotJuggler starts.
+| Platform | Plugin path |
+|---|---|
+| Windows | Same folder as `plotjuggler.exe` (e.g. `C:\Program Files\PlotJuggler\`) |
+| Linux | Same folder as the `plotjuggler` binary (e.g. `/usr/local/bin/`) |
 
-## Repository Structure
+Restart PlotJuggler. The **Plugin** will load in new session.
 
-```
-src/PlotJuggler-Drone/
-├── CMakeLists.txt             <- top-level: finds Qt5 and PlotJuggler, adds plugin subdirs
-├── vcpkg.json                 <- vcpkg dependencies (Qt5)
-├── conanfile.txt              <- Conan generator stubs
-├── README.md
-├── 3rdparty/
-│   └── c_library_v2/          <- MAVLink C headers (git submodule)
-├── PluginTemplate/            <- minimal template to copy when adding a new plugin
-└── <PluginName>/              <- one subdirectory per plugin
-    ├── CMakeLists.txt
-    ├── <plugin>.h
-    └── <plugin>.cpp
-```
+---
 
-## Adding a New Plugin
+## Building from Source
 
-1. Create a new subdirectory, e.g. `DataStreamDrone/`.
+See [docs/build.md](docs/build.md) for workspace layout, PlotJuggler setup, and CMake build instructions.
 
-2. Add `DataStreamDrone/CMakeLists.txt`, modelled after `PluginTemplate/CMakeLists.txt`:
+---
 
-```cmake
-add_library(DataStreamDrone SHARED
-    datastream_drone.h
-    datastream_drone.cpp)
+## Development
 
-target_include_directories(DataStreamDrone PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PJ_INCLUDE_DIR})
+See [docs/develop.md](docs/develop.md) for step-by-step instructions on scaffolding a new plugin from the template, the CMake wiring, and key rules for thread-safe `dataMap()` access.
 
-target_compile_definitions(DataStreamDrone PRIVATE
-    QT_PLUGIN
-    FMT_HEADER_ONLY
-    PJ_MAJOR_VERSION=${PJ_MAJOR_VERSION}
-    PJ_MINOR_VERSION=${PJ_MINOR_VERSION}
-    PJ_PATCH_VERSION=${PJ_PATCH_VERSION})
+---
 
-target_link_libraries(DataStreamDrone PRIVATE
-    Qt5::Core Qt5::Widgets Qt5::Xml Qt5::Network
-    ${PJ_BASE_LIB} ${PJ_QWT_LIB})
+## License
 
-install(TARGETS DataStreamDrone
-    RUNTIME DESTINATION ${PJ_PLUGIN_INSTALL_DIRECTORY}/$<CONFIG>)
-```
-
-3. Inherit the appropriate base class and implement its interface:
-
-| Plugin type    | Base class         | IID |
-|----------------|--------------------|-----|
-| Live streaming | `PJ::DataStreamer` | `facontidavide.PlotJuggler3.DataStreamer` |
-| File loading   | `PJ::DataLoader`   | `facontidavide.PlotJuggler3.DataLoader`  |
-
-4. Register the subdirectory in the top-level `CMakeLists.txt`:
-
-```cmake
-add_subdirectory(DataStreamDrone)
-```
-
-5. Re-configure and build:
-
-```batch
-cmake -S src\PlotJuggler-Drone -B build\PlotJuggler-Drone
-cmake --build build\PlotJuggler-Drone --config Release --target install
-```
-
-## Development Notes
-
-- Set `isDebugPlugin()` to `true` during development; change to `false` before release.
-- Always hold `mutex()` when writing to `dataMap()` from a background thread.
-- Call `emit dataReceived()` after each data push to notify PlotJuggler to refresh.
+This project is licensed under the [Mozilla Public License 2.0](https://opensource.org/licenses/MPL-2.0).
