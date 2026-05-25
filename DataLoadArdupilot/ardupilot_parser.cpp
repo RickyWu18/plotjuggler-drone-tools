@@ -9,8 +9,9 @@ static constexpr uint8_t HEAD_BYTE2     = 0x95;
 static constexpr uint8_t FMT_MSGID      = 128;
 static constexpr int     FMT_PAYLOAD_LEN = 86;
 
-ArdupilotParser::ArdupilotParser(const uint8_t* data, size_t length)
-  : _data(data), _length(length)
+ArdupilotParser::ArdupilotParser(const uint8_t* data, size_t length,
+                                 bool loadFiles, ProgressCallback progressCb)
+  : _data(data), _length(length), _loadFiles(loadFiles), _progressCb(std::move(progressCb))
 {
   // Seed built-in multiplier table so scaling works before MULT packets arrive
   _multTable['?'] = 1.0;
@@ -35,6 +36,7 @@ ArdupilotParser::ArdupilotParser(const uint8_t* data, size_t length)
 void ArdupilotParser::parse()
 {
   size_t pos = 0;
+  int last_percent = -1;
 
   while (pos + 3 <= _length)
   {
@@ -62,6 +64,16 @@ void ArdupilotParser::parse()
       else if (def.name == "FILE") _fileMsgType = def.msg_type;
 
       applyPendingFmtu(def.msg_type);
+
+      if (_progressCb)
+      {
+        const int pct = static_cast<int>(100.0 * pos / _length);
+        if (pct != last_percent)
+        {
+          last_percent = pct;
+          if (!_progressCb(pos, _length)) return;
+        }
+      }
       continue;
     }
 
@@ -84,11 +96,21 @@ void ArdupilotParser::parse()
     if      (msgid == _unitMsgType) parseUnitPacket(payload, def);
     else if (msgid == _multMsgType) parseMultPacket(payload, def);
     else if (msgid == _fmtuMsgType) parseFmtuPacket(payload, def);
-    else if (msgid == _fileMsgType) parseFilePacket(payload, def);
+    else if (msgid == _fileMsgType) { if (_loadFiles) parseFilePacket(payload, def); }
     else                            parseDataPacket(payload, def);
+
+    if (_progressCb)
+    {
+      const int pct = static_cast<int>(100.0 * pos / _length);
+      if (pct != last_percent)
+      {
+        last_percent = pct;
+        if (!_progressCb(pos, _length)) return;
+      }
+    }
   }
 
-  assembleEmbeddedFiles();
+  if (_loadFiles) assembleEmbeddedFiles();
 }
 
 ApMessageDef ArdupilotParser::buildMessageDef(const uint8_t* payload86)

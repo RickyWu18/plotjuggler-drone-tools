@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -62,7 +63,11 @@ struct ApEmbeddedFile
 class ArdupilotParser
 {
 public:
-  explicit ArdupilotParser(const uint8_t* data, size_t length);
+  using ProgressCallback = std::function<bool(size_t pos, size_t total)>;
+
+  explicit ArdupilotParser(const uint8_t* data, size_t length,
+                           bool loadFiles = true,
+                           ProgressCallback progressCb = nullptr);
 
   const ApSeriesMap&                    getSeriesMap()      const { return _series;        }
   const std::vector<ApMessageStats>&   getMessageStats()   const { return _stats;         }
@@ -91,8 +96,10 @@ private:
 
   double decodeField(const uint8_t* payload, size_t& offset, char fmt_char);
 
-  const uint8_t* _data   = nullptr;
-  size_t         _length = 0;
+  const uint8_t* _data      = nullptr;
+  size_t         _length    = 0;
+  bool           _loadFiles = true;
+  ProgressCallback _progressCb;
 
   std::unordered_map<uint8_t, ApMessageDef>  _fmtTable;
   std::unordered_map<char,   std::string>    _unitTable;

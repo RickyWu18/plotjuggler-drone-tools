@@ -25,16 +25,6 @@
       </attribute>
       <layout class="QVBoxLayout" name="paramsLayout">
        <item>
-        <widget class="QLineEdit" name="searchEdit">
-         <property name="placeholderText">
-          <string>Search parameters (supports regex)...</string>
-         </property>
-         <property name="toolTip">
-          <string>Filter by name — regular expressions are supported (e.g. ^ATC, RATE_.*, INS_ACC)</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QTableWidget" name="tableParams">
          <property name="selectionBehavior">
           <enum>QAbstractItemView::SelectRows</enum>
@@ -57,17 +47,14 @@
        <item>
         <layout class="QHBoxLayout" name="exportParamsLayout">
          <item>
-          <spacer name="exportParamsSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+          <widget class="QLineEdit" name="searchEdit">
+           <property name="placeholderText">
+            <string>Search parameters (supports regex)...</string>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
+           <property name="toolTip">
+            <string>Filter by name — regular expressions are supported (e.g. ^ATC, RATE_.*, INS_ACC)</string>
            </property>
-          </spacer>
+          </widget>
          </item>
          <item>
           <widget class="QPushButton" name="btnExport">
