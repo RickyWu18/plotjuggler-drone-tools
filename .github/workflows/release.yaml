@@ -21,7 +21,7 @@ jobs:
       contents: write
     env:
       CXXFLAGS: /MP
-      CPM_SOURCE_CACHE: ${{ runner.temp }}/cpm_cache
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_cache
 
     steps:
       - name: Checkout PlotJuggler-Drone
@@ -46,7 +46,7 @@ jobs:
       - name: Cache CPM packages
         uses: actions/cache@v5
         with:
-          path: ${{ runner.temp }}/cpm_cache
+          path: ${{ github.workspace }}/cpm_cache
           key: cpm-windows-pj-${{ env.PJ_TAG }}
           restore-keys: cpm-windows-
 
@@ -111,7 +111,7 @@ jobs:
           - os: macos-13
             arch: x86_64
     env:
-      CPM_SOURCE_CACHE: ${{ runner.temp }}/cpm_cache
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_cache
 
     steps:
       - name: Checkout PlotJuggler-Drone
@@ -133,7 +133,7 @@ jobs:
       - name: Cache CPM packages
         uses: actions/cache@v5
         with:
-          path: ${{ runner.temp }}/cpm_cache
+          path: ${{ github.workspace }}/cpm_cache
           key: cpm-macos-${{ matrix.arch }}-pj-${{ env.PJ_TAG }}
           restore-keys: cpm-macos-${{ matrix.arch }}-
 
@@ -184,7 +184,7 @@ jobs:
     permissions:
       contents: write
     env:
-      CPM_SOURCE_CACHE: ${{ runner.temp }}/cpm_cache
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_cache
 
     steps:
       - name: Checkout PlotJuggler-Drone
@@ -216,7 +216,7 @@ jobs:
       - name: Cache CPM packages
         uses: actions/cache@v5
         with:
-          path: ${{ runner.temp }}/cpm_cache
+          path: ${{ github.workspace }}/cpm_cache
           key: cpm-ubuntu-pj-${{ env.PJ_TAG }}
           restore-keys: cpm-ubuntu-
 
