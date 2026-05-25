@@ -19,6 +19,7 @@ PlotJuggler is a fast, open-source time-series visualization tool. This reposito
 | Plugin | Description |
 |---|---|
 | **DataStreamMavlink** | Streams live MAVLink telemetry over UDP, TCP, or Serial into PlotJuggler. Automatically discovers all message fields and populates them as time-series. Includes a built-in **Message Interval** dialog to inspect and tune per-message update rates on the vehicle. |
+| **DataLoadArdupilot** | Loads ArduPilot `.BIN` flight logs directly into PlotJuggler. Parses the binary format, decodes all numeric fields with correct units and multipliers, and optionally appends unit suffixes to series names. Displays a post-load **Parameters** dialog showing all PARM values with regex search and `.param` export. |
 
 ### DataStreamMavlink — Feature Highlights
 
@@ -26,6 +27,13 @@ PlotJuggler is a fast, open-source time-series visualization tool. This reposito
 - **Zero-config field discovery:** every numeric field in every MAVLink message is automatically mapped to a plot series named `mav/<sysid>.<compid>/<MSG_NAME>/<field>`.
 - **Multi-vehicle:** differentiates streams by `sysid.compid`, so data from multiple vehicles on the same link is kept separate.
 - **Message Interval control:** via the **"Message Intervals…"** toolbar action, view live message rates and send `SET_MESSAGE_INTERVAL` commands back to the vehicle to tune what gets streamed and how fast.
+
+### DataLoadArdupilot — Feature Highlights
+
+- **Native `.bin` parsing:** reads ArduPilot binary logs directly — no conversion step required.
+- **Full field discovery:** decodes FMT, UNIT, MULT, and FMTU packets to map every numeric field to a plot series named `<MSG_NAME>/<field>`.
+- **Unit-aware:** applies ArduPilot unit and multiplier metadata; optionally appends the unit to each series name (e.g. `Roll(deg)`) via a load-time checkbox.
+- **Parameters dialog:** displays all PARM entries from the log (last value per parameter), with live regex search filtering and one-click export to a `.param` file (`<name>,<value>` format).
 
 ---
 
