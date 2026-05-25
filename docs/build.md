@@ -15,6 +15,23 @@ plotjuggler_ws/
 
 **2. Build PlotJuggler.** If PlotJuggler is not yet installed, follow the [PlotJuggler compile guide](https://github.com/PlotJuggler/PlotJuggler/blob/main/COMPILE.md) and install it into `plotjuggler_ws/install/`.
 
+> [!TIP]
+> If you experience a compilation error in `ElidingLabel.cpp` when building with vcpkg on Windows, you need to add the `/utf-8` compiler option.
+> Update `src/PlotJuggler/CMakeLists.txt` inside the `if(MSVC)` block as shown below:
+> ```
+> if(WIN32)
+>   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -D_USE_MATH_DEFINES")
+>   set(CMAKE_WIN32_EXECUTABLE ON)
+>   set(GUI_TYPE WIN32)
+>   if(MSVC)
+>     add_compile_options(/wd4267 /wd4996 /utf-8)
+>   endif()
+> else()
+>   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fPIC -fno-omit-frame-pointer")
+>   add_compile_options(-Wno-deprecated-declarations)
+> endif()
+> ```
+
 **3. Clone this repository** with submodules in one step:
 
 ```batch
