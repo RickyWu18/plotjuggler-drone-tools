@@ -59,6 +59,7 @@ void ArdupilotParser::parse()
       if      (def.name == "UNIT") _unitMsgType = def.msg_type;
       else if (def.name == "MULT") _multMsgType = def.msg_type;
       else if (def.name == "FMTU") _fmtuMsgType = def.msg_type;
+      else if (def.name == "FILE") _fileMsgType = def.msg_type;
 
       applyPendingFmtu(def.msg_type);
       continue;
@@ -83,8 +84,11 @@ void ArdupilotParser::parse()
     if      (msgid == _unitMsgType) parseUnitPacket(payload, def);
     else if (msgid == _multMsgType) parseMultPacket(payload, def);
     else if (msgid == _fmtuMsgType) parseFmtuPacket(payload, def);
+    else if (msgid == _fileMsgType) parseFilePacket(payload, def);
     else                            parseDataPacket(payload, def);
   }
+
+  assembleEmbeddedFiles();
 }
 
 ApMessageDef ArdupilotParser::buildMessageDef(const uint8_t* payload86)
@@ -461,4 +465,60 @@ void ArdupilotParser::applyPendingFmtu(uint8_t msg_type)
 
   applyFmtu(_fmtTable[msg_type], it->second.units, it->second.multipliers);
   _pendingFmtu.erase(it);
+}
+
+void ArdupilotParser::parseFilePacket(const uint8_t* payload, const ApMessageDef& def)
+{
+  std::string    filename;
+  uint32_t       offset   = 0;
+  uint8_t        length   = 0;
+  const uint8_t* data_ptr = nullptr;
+  size_t         off      = 0;
+
+  for (const auto& field : def.fields)
+  {
+    if (field.label == "FileName" && field.is_string)
+    {
+      const char* s = reinterpret_cast<const char*>(payload + off);
+      filename = std::string(s, strnlen(s, static_cast<size_t>(field.byte_size)));
+    }
+    else if (field.label == "Offset" && field.fmt_char == 'I')
+      memcpy(&offset, payload + off, 4);
+    else if (field.label == "Length" && field.fmt_char == 'B')
+      length = payload[off];
+    else if (field.label == "Data")
+      data_ptr = payload + off;
+
+    off += static_cast<size_t>(field.byte_size);
+  }
+
+  if (filename.empty() || data_ptr == nullptr || length == 0) return;
+  if (length > 64) length = 64;
+
+  _fileChunks[filename].emplace_back(
+      offset, std::vector<uint8_t>(data_ptr, data_ptr + length));
+}
+
+void ArdupilotParser::assembleEmbeddedFiles()
+{
+  for (auto& [name, chunks] : _fileChunks)
+  {
+    std::sort(chunks.begin(), chunks.end(),
+              [](const auto& a, const auto& b){ return a.first < b.first; });
+
+    size_t total = 0;
+    for (const auto& [chunk_offset, chunk_data] : chunks)
+    {
+      const size_t end = chunk_offset + chunk_data.size();
+      if (end > total) total = end;
+    }
+
+    ApEmbeddedFile ef;
+    ef.name = name;
+    ef.data.resize(total, 0);
+    for (const auto& [chunk_offset, chunk_data] : chunks)
+      std::copy(chunk_data.begin(), chunk_data.end(), ef.data.begin() + chunk_offset);
+
+    _embeddedFiles.push_back(std::move(ef));
+  }
 }

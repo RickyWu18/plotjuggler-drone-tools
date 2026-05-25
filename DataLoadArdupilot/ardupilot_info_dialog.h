@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QDialog>
+#include <QList>
+#include <QModelIndex>
 #include <QString>
 #include <vector>
 #include "ardupilot_parser.h"
@@ -13,6 +15,7 @@ class ArdupilotInfoDialog : public QDialog
 
 public:
   explicit ArdupilotInfoDialog(const std::vector<ApParameter>& params,
+                               const std::vector<ApEmbeddedFile>& files,
                                QWidget* parent = nullptr);
   ~ArdupilotInfoDialog() override;
 
@@ -22,7 +25,12 @@ public:
 private slots:
   void onSearchChanged(const QString& text);
   void onExport();
+  void onExportSelected();
+  void onExportAll();
 
 private:
+  void exportFilesToFolder(const QList<QModelIndex>& rows);
+
   Ui::ArdupilotInfoDialog* ui;
+  std::vector<ApEmbeddedFile> _embeddedFiles;
 };

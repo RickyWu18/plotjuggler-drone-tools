@@ -116,6 +116,52 @@ at a time until the next `0xA3 0x95` pair is found.
 
 ---
 
+## Step 8: Reassemble Embedded Files from FILE Messages
+
+ArduPilot can embed on-vehicle files (system diagnostics, crash dumps, Lua scripts,
+parameters, etc.) directly in the BIN stream as `FILE` messages. Each message carries
+a 64-byte chunk:
+
+```
+filename[16]  — file name, zero-padded, NOT null-terminated
+offset  (I)   — byte position of this chunk in the original file
+length  (B)   — number of valid bytes in this chunk (1–64)
+data    [64]  — raw chunk bytes
+```
+
+**Reassembly algorithm:**
+
+```
+file_chunks = {}   # dict: filename -> sorted list of (offset, data)
+
+for each FILE message:
+    name = strip_nul(msg.filename)
+    file_chunks[name].append( (msg.offset, msg.data[:msg.length]) )
+
+for name, chunks in file_chunks:
+    chunks.sort(key=lambda c: c.offset)
+    output = b"".join(data for _, data in chunks)
+    save as output/<name>
+```
+
+**Files typically embedded on every arming:**
+
+| Filename in BIN | Contents |
+|---|---|
+| `uarts.txt` | UART configuration |
+| `memory.txt` | Heap / memory statistics |
+| `threads.txt` | Active thread list |
+| `timers.txt` | Timer usage |
+| `hwdef.dat` | Hardware definition (board pinout) |
+| `storage.bin` | Raw parameter storage |
+| `crash_dump.bin` | Crash dump from previous run (if present) |
+| `defaults.parm` | Compiled-in default parameters |
+
+> Mission Planner's log browser surfaces these as downloadable attachments.
+> `crash_dump.bin` is logged at 10× the normal rate to minimise logging time (~1 min for 450 KB).
+
+---
+
 ## Summary: Parse Loop
 
 ```

@@ -451,6 +451,53 @@ Labels: TimeUS,BT,BST,Maj,Min,Pat,FWT,GH,FWS,APJ,BU,FV
 ```
 `FWS` is type `Z` (64-byte string) containing the full firmware version string.
 
+### 8.20 FILE — Embedded File Content
+
+ArduPilot can embed the contents of arbitrary on-vehicle files directly into the BIN
+stream using `FILE` messages. Each message carries a 64-byte chunk of one file; the
+receiver reassembles the original file from chunks ordered by `offset`.
+
+```c
+struct PACKED log_File {
+    LOG_PACKET_HEADER;        // 3 bytes: 0xA3 0x95 <msgid>
+    char     filename[16];    // N — file name (zero-padded, NOT null-terminated)
+    uint32_t offset;          // I — byte offset of this chunk within the original file
+    uint8_t  length;          // B — number of valid bytes in data[] (1–64)
+    char     data[64];        // raw file bytes for this chunk
+};
+// Total: 3 + 16 + 4 + 1 + 64 = 88 bytes
+```
+
+**Reassembly rule:** collect all `FILE` messages with the same `filename`, sort by
+`offset`, concatenate `data[0..length-1]` from each chunk in order.
+
+#### Files logged automatically on arming
+
+Every time the vehicle arms, ArduPilot schedules the following files for embedding
+(defined in `AP_Logger::prepare_at_arming_sys_file_logging()`):
+
+| Embedded filename | Source path | Contents |
+|---|---|---|
+| `uarts.txt` | `@SYS/uarts.txt` | UART configuration |
+| `memory.txt` | `@SYS/memory.txt` | Heap / memory statistics |
+| `threads.txt` | `@SYS/threads.txt` | Active thread list |
+| `timers.txt` | `@SYS/timers.txt` | Timer usage |
+| `hwdef.dat` | `@ROMFS/hwdef.dat` | Hardware definition (board pinout) |
+| `storage.bin` | `@SYS/storage.bin` | Raw parameter storage area |
+| `crash_dump.bin` | `@SYS/crash_dump.bin` | Crash dump from previous run (if present) |
+| `defaults.parm` | `@ROMFS/defaults.parm` | Compiled-in default parameters |
+
+> `dma.txt` is also logged in debug builds.
+
+**`crash_dump.bin` fast-path:** if a crash dump exists, ArduPilot logs it at **10×**
+the normal chunk rate (≈ one chunk per main-loop tick instead of one per 10 ticks) so
+that a full ~450 KB dump completes in roughly 1 minute. A GCS status message is sent:
+`"Logging @SYS/crash_dump.bin"`.
+
+Additionally, `AP_Logger::log_file_content(const char *filename)` may be called at any
+time by vehicle code (e.g. by Lua scripting) to embed arbitrary additional files on the
+`normal_file_content` channel.
+
 ---
 
 ## 9. Enumeration Reference
@@ -654,11 +701,12 @@ A `LASTLOG.TXT` file in the same directory contains the most recently written lo
 
 ## 14. Source File Reference
 
-| File                          | Relevance |
-|-------------------------------|-----------|
-| `AP_Logger/LogStructure.h`    | All struct definitions, FMT types, unit/multiplier tables, LogMessages enum |
-| `AP_Logger/AP_Logger.h`       | LogEvent, LogErrorSubsystem, LogErrorCode enums; AP_Logger class API |
-| `AP_Logger/LogFile.cpp`       | Fill_Format, Fill_Format_Units, Write_* implementations showing exact packing |
-| `AP_Logger/AP_Logger_File.h`  | File backend: naming, buffering, write chunk size (4096 bytes) |
-| `AP_Logger/AP_Logger_Block.h` | Flash block backend: PageHeader (FilePage+FileNumber), FileHeader (utc_secs) |
-| `AP_Logger/README.md`         | Official quick-reference for format chars, units, and multipliers |
+| File                              | Relevance |
+|-----------------------------------|-----------|
+| `AP_Logger/LogStructure.h`        | All struct definitions, FMT types, unit/multiplier tables, LogMessages enum |
+| `AP_Logger/AP_Logger.h`           | LogEvent, LogErrorSubsystem, LogErrorCode enums; AP_Logger class API |
+| `AP_Logger/LogFile.cpp`           | Fill_Format, Fill_Format_Units, Write_* implementations showing exact packing |
+| `AP_Logger/AP_Logger_File.h`      | File backend: naming, buffering, write chunk size (4096 bytes) |
+| `AP_Logger/AP_Logger.cpp` (≥1546) | `prepare_at_arming_sys_file_logging()`, `log_file_content()`, `file_content_update()` — FILE message emission |
+| `AP_Logger/AP_Logger_Block.h`     | Flash block backend: PageHeader (FilePage+FileNumber), FileHeader (utc_secs) |
+| `AP_Logger/README.md`             | Official quick-reference for format chars, units, and multipliers |

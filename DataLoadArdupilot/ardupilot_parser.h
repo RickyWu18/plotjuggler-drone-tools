@@ -53,14 +53,21 @@ struct ApParameter
   double      value = 0.0;
 };
 
+struct ApEmbeddedFile
+{
+  std::string           name;
+  std::vector<uint8_t>  data;
+};
+
 class ArdupilotParser
 {
 public:
   explicit ArdupilotParser(const uint8_t* data, size_t length);
 
-  const ApSeriesMap&                  getSeriesMap()    const { return _series; }
-  const std::vector<ApMessageStats>&  getMessageStats() const { return _stats;  }
-  const std::vector<ApParameter>&     getParameters()   const { return _params; }
+  const ApSeriesMap&                    getSeriesMap()      const { return _series;        }
+  const std::vector<ApMessageStats>&   getMessageStats()   const { return _stats;         }
+  const std::vector<ApParameter>&      getParameters()     const { return _params;        }
+  const std::vector<ApEmbeddedFile>&   getEmbeddedFiles()  const { return _embeddedFiles; }
 
 private:
   void parse();
@@ -79,6 +86,8 @@ private:
   void parseUnitPacket(const uint8_t* payload, const ApMessageDef& def);
   void parseMultPacket(const uint8_t* payload, const ApMessageDef& def);
   void parseFmtuPacket(const uint8_t* payload, const ApMessageDef& def);
+  void parseFilePacket(const uint8_t* payload, const ApMessageDef& def);
+  void assembleEmbeddedFiles();
 
   double decodeField(const uint8_t* payload, size_t& offset, char fmt_char);
 
@@ -93,6 +102,7 @@ private:
   uint8_t _unitMsgType = 0;
   uint8_t _multMsgType = 0;
   uint8_t _fmtuMsgType = 0;
+  uint8_t _fileMsgType = 0;
 
   double _lastTimestamp = 0.0;
 
@@ -101,4 +111,8 @@ private:
   std::unordered_map<std::string, size_t> _statsIndex;
   std::vector<ApParameter>                _params;
   std::unordered_map<std::string, size_t> _paramsIndex;
+
+  std::unordered_map<std::string,
+      std::vector<std::pair<uint32_t, std::vector<uint8_t>>>> _fileChunks;
+  std::vector<ApEmbeddedFile> _embeddedFiles;
 };
