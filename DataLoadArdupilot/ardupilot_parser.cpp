@@ -140,12 +140,7 @@ void ArdupilotParser::finalizeDefs()
     // Cache mult_val on every field so the decode hot-path needs no map lookup
     for (auto& field : def.fields)
     {
-      if (field.mult_id != '?')
-      {
-        auto it = _multTable.find(field.mult_id);
-        field.mult_val = (it != _multTable.end()) ? it->second : 1.0;
-      }
-      else
+      if (field.mult_id == '?')
       {
         // Fallback scaling for older logs without FMTU packets
         switch (field.fmt_char)
@@ -155,6 +150,15 @@ void ArdupilotParser::finalizeDefs()
           case 'L':           field.mult_val = 1e-7; break;
           default:            field.mult_val = 1.0;  break;
         }
+      }
+      else if (field.mult_id == '-')
+      {
+        field.mult_val = 1.0;  // '-' means no multiplier in ArduPilot
+      }
+      else
+      {
+        auto it = _multTable.find(field.mult_id);
+        field.mult_val = (it != _multTable.end() && it->second != 0.0) ? it->second : 1.0;
       }
     }
 
@@ -435,7 +439,7 @@ void ArdupilotParser::parseDataPacket(const uint8_t* payload, const ApMessageDef
   for (size_t i = 0; i < def.fields.size(); i++)
   {
     const auto& field = def.fields[i];
-    if (field.is_string || field.is_array || static_cast<int>(i) == def.timestamp_idx)
+    if (field.is_string || field.is_array)
       offset += static_cast<size_t>(field.byte_size);
     else
       values[i] = decodeField(payload, offset, field.fmt_char);
@@ -560,9 +564,17 @@ void ArdupilotParser::parseFmtuPacket(const uint8_t* payload, const ApMessageDef
 
   for (const auto& field : def.fields)
   {
-    if (field.label == "FmtType" && (field.fmt_char == 'B' || field.fmt_char == 'b'))
+    if (field.label == "FmtType")
     {
-      memcpy(&fmt_type, payload + offset, 1);
+      if (field.fmt_char == 'B' || field.fmt_char == 'b')
+      {
+        memcpy(&fmt_type, payload + offset, 1);
+      }
+      else if (field.fmt_char == 'H')
+      {
+        uint16_t v; memcpy(&v, payload + offset, 2);
+        fmt_type = static_cast<uint8_t>(v);
+      }
     }
     else if (field.label == "UnitIds" && field.is_string)
     {
