@@ -108,7 +108,7 @@ if (field.mult_id != '?')
 else { /* fmt-char fallback */ }
 ```
 
-### Issue 1 — Silent miss on unknown mult_id ⚠️
+### Issue 1 — Silent miss on unknown mult_id ✅ Fixed
 
 If FMTU assigns a `mult_id` that is neither in the seed table nor populated by
 a MULT packet (e.g., a typo or firmware bug), the lookup fails silently. The
@@ -118,7 +118,7 @@ emitted unscaled without any diagnostic message.
 **Impact:** Rare (requires a malformed log), but the scaled plot would show raw
 integer values instead of physical units with no indication of the error.
 
-**Recommendation:** Log a `qWarning` when `mult_it == _multTable.end()`.
+**Fix applied:** `qWarning` is now emitted when `mult_it == _multTable.end()`.
 
 ---
 
@@ -136,7 +136,7 @@ if (series.unit.empty() && field.unit_id != '?')
 
 Unit is assigned only on the **first data packet** where the unit is resolvable.
 
-### Issue 2 — Unit resolved on first sample only ⚠️
+### Issue 2 — Unit resolved on first sample only ✅ Fixed
 
 If the first data packet for a series arrives before the UNIT packets have
 populated `_unitTable`, `series.unit` stays empty for the lifetime of that
@@ -146,9 +146,10 @@ series. Subsequent samples do not re-attempt resolution.
 is enabled. In practice ArduPilot logs write UNIT packets at the very start of
 the file, so this is a rare edge case with truncated or rearranged logs.
 
-**Recommendation:** Either (a) do a pre-pass to populate unit/mult tables before
-decoding data, or (b) store the unresolved `unit_id` and do a post-pass lookup
-after all UNIT packets are seen.
+**Fix applied:** `ApSeries` now carries `unit_id`. During `parseDataPacket` the
+`unit_id` is stored on first touch and resolution is re-attempted on each sample
+until it succeeds. A post-pass at the end of `parse()` resolves any remaining
+series whose UNIT packet arrived after all data packets.
 
 ---
 
@@ -158,7 +159,7 @@ Both `parseUnitPacket` and `parseMultPacket` decode the `Id` field as `int8_t`
 regardless of whether the format char is `'b'` (signed) or `'B'` (unsigned):
 
 ```cpp
-// ardupilot_parser.cpp:396, 418
+// ardupilot_parser.cpp:396, 420
 int8_t v; memcpy(&v, payload + offset, 1);
 type_id = static_cast<char>(v);
 ```
@@ -182,24 +183,24 @@ uint32_t m = mantissa;
 while (!(m & 0x400)) { m <<= 1; e--; }
 ```
 
-### Issue 4 — Unsigned underflow in denormal normalization ⚠️
+### Issue 4 — Unsigned underflow in denormal normalization ✅ Fixed
 
-`e` is `uint32_t`. If more than 1 shift is needed (mantissa has leading zeros),
+`e` was `uint32_t`. If more than 1 shift is needed (mantissa has leading zeros),
 `e` wraps from 1 → 0 → 4294967295, producing a wildly wrong float32 exponent.
 
 Example: mantissa = `0b0000000001` (minimum denormal, 9 shifts needed):
 - Correct biased float32 exponent: `1 + 127 - 15 - 9 = 104`
-- Actual computed: `(1 - 9) as uint32 + 127 - 15` → wrap → garbage
+- Previously computed: `(1 - 9) as uint32 + 127 - 15` → wrap → garbage
 
 **Impact:** Float16 denormals represent values < 6.1e-5, which are never
 produced by ArduPilot sensors. No known practical impact.
 
-**Fix:**
+**Fix applied:** Changed `e` to `int32_t` and added an underflow guard that
+clamps to ±0 when the biased exponent would go below 1:
 
 ```cpp
-// Change uint32_t e to int32_t, then guard the clamp:
-int32_t e = 1;
-...
+int32_t  e = 1;
+uint32_t m = mantissa;
 while (!(m & 0x400)) { m <<= 1; e--; }
 m &= ~0x400u;
 if (e < 1)
@@ -251,10 +252,10 @@ series-name path separator. ✅
 
 | # | Location | Severity | Finding |
 |---|----------|----------|---------|
-| 1 | `parseDataPacket` L343–358 | ⚠️ Minor | Silent miss when `mult_id` set but not in `_multTable`; value emitted unscaled without warning |
-| 2 | `parseDataPacket` L362–367 | ⚠️ Minor | Unit resolved on first sample only; UNIT packets arriving late leave series without a unit |
+| 1 | `parseDataPacket` L343–358 | ✅ Fixed | `qWarning` now emitted when `mult_id` is set but not in `_multTable` |
+| 2 | `parseDataPacket` L362–367 | ✅ Fixed | `ApSeries` stores `unit_id`; post-pass resolves units after all UNIT packets are seen |
 | 3 | `parseUnitPacket` / `parseMultPacket` | ℹ️ Cosmetic | `int8_t` used to read Id even when fmt_char is `'B'`; no practical impact |
-| 4 | `float16ToDouble` L216–219 | ⚠️ Low-impact | `uint32_t` underflow in denormal normalization; values < 6.1e-5 decoded incorrectly |
+| 4 | `float16ToDouble` L216–219 | ✅ Fixed | Changed `e` to `int32_t`; underflow guard clamps denormal to ±0 |
 | — | Multiplier seed table | ✅ Correct | All 15 entries match ArduPilot's `log_Multipliers[]` exactly |
 | — | Fmt-char fallbacks (c/C/e/E/L) | ✅ Correct | Match ArduPilot conventions; no double-scaling risk |
 | — | FMTU null-byte guard | ✅ Correct | `!= '\0'` correctly skips padding; valid IDs are never 0x00 |

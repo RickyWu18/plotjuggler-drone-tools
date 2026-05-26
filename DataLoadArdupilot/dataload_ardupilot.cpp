@@ -12,6 +12,7 @@
 #include <QProgressDialog>
 #include <QSettings>
 #include <QVBoxLayout>
+#include <QtCore/qscopeguard.h>
 #include <stdexcept>
 
 const std::vector<const char*>& DataLoadArdupilot::compatibleFileExtensions() const
@@ -63,6 +64,7 @@ bool DataLoadArdupilot::readDataFromFile(PJ::FileLoadInfo* info,
   {
     throw std::runtime_error("ArduPilot: failed to memory-map file");
   }
+  auto unmap_guard = qScopeGuard([&]{ file.unmap(const_cast<uchar*>(mapped)); });  // D4
 
   QWidget* main_window = QApplication::activeWindow();
 
@@ -93,52 +95,55 @@ bool DataLoadArdupilot::readDataFromFile(PJ::FileLoadInfo* info,
       });
 
   if (progress_dialog.wasCanceled())
-  {
-    file.unmap(const_cast<uchar*>(mapped));
     return false;
-  }
 
   // Write phase: 50–100%
   progress_dialog.setLabelText("Writing data to PlotJuggler...");
   progress_dialog.setValue(50);
   QApplication::processEvents();
 
-  const auto& series_map = parser.getSeriesMap();
-  size_t total_samples = 0;
-  for (const auto& [key, series] : series_map)
-    total_samples += series.values.size();
+  const auto& series_map   = parser.getSeriesMap();
+  const size_t total_samples = parser.getTotalSamples();  // D1: no counting loop
 
-  size_t written = 0;
+  size_t written  = 0;
+  int    last_pct = 50;
   for (const auto& [key, series] : series_map)
   {
-    if (series.values.empty()) continue;
+    if (series.points.empty()) continue;
 
-    // Replace ASCII '/' in unit with Unicode division slash (U+2215)
+    // Replace ASCII '/' with Unicode division slash (U+2215, D3: single forward pass)
     // to prevent PlotJuggler from treating "m/s" as a path separator.
-    std::string unit = series.unit;
-    for (size_t p = 0; (p = unit.find('/', p)) != std::string::npos; )
-    {
-      unit.replace(p, 1, "\xe2\x88\x95");
-      p += 3;
-    }
+    std::string unit;
+    unit.reserve(series.unit.size() + 4);
+    for (char ch : series.unit)
+      ch == '/' ? unit += "\xe2\x88\x95" : unit += ch;
 
-    const std::string display_key = (show_units && !unit.empty())
-        ? key + "(" + unit + ")"
-        : key;
+    // D6: build display_key in-place, no extra copy in the false branch
+    std::string display_key = key;
+    if (show_units && !unit.empty())
+      display_key.append("(").append(unit).append(")");
 
     auto& plot = dest.getOrCreateNumeric(display_key);
-    for (size_t i = 0; i < series.values.size(); i++)
-      plot.pushBack({ series.timestamps[i], series.values[i] });
+    for (const auto& [t, v] : series.points)  // D5: interleaved layout
+      plot.pushBack({t, v});
 
-    written += series.values.size();
+    written += series.points.size();
+
+    // D2: throttle progress updates — only fire when percentage changes
     if (total_samples > 0)
-      progress_dialog.setValue(50 + static_cast<int>(50.0 * written / total_samples));
-    QApplication::processEvents();
+    {
+      const int pct = 50 + static_cast<int>(50.0 * written / total_samples);
+      if (pct != last_pct)
+      {
+        last_pct = pct;
+        progress_dialog.setValue(pct);
+        QApplication::processEvents();
+      }
+    }
 
     if (progress_dialog.wasCanceled())
     {
       dest.clear();
-      file.unmap(const_cast<uchar*>(mapped));
       return false;
     }
   }
@@ -156,6 +161,5 @@ bool DataLoadArdupilot::readDataFromFile(PJ::FileLoadInfo* info,
   progress_dialog.setValue(100);
   progress_dialog.close();
 
-  file.unmap(const_cast<uchar*>(mapped));
   return true;
 }

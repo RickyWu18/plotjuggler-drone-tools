@@ -13,18 +13,22 @@ struct ApFieldDef
   bool        is_string = false;
   bool        is_array  = false;
   std::string label;
-  char        unit_id = '?';
-  char        mult_id = '?';
+  char        unit_id  = '?';
+  char        mult_id  = '?';
+  double      mult_val = 1.0;   // cached scaling factor, populated after pass 1
 };
 
 struct ApMessageDef
 {
-  uint8_t                 msg_type      = 0;
-  uint8_t                 msg_len       = 0;
-  std::string             name;
-  std::vector<ApFieldDef> fields;
-  int                     timestamp_idx = -1;
-  int                     instance_idx  = -1;
+  uint8_t                  msg_type      = 0;
+  uint8_t                  msg_len       = 0;
+  std::string              name;
+  std::vector<ApFieldDef>  fields;
+  int                      timestamp_idx = -1;
+  int                      instance_idx  = -1;
+  std::vector<std::string> series_keys;   // pre-built "Name/Field" per field (non-instance only)
+  int                      stats_idx     = -1;   // index into _stats[], set in finalizeDefs()
+  size_t                   data_count    = 0;    // data packets seen in pass 1, used for reserve
 };
 
 struct ApFmtuPending
@@ -35,9 +39,9 @@ struct ApFmtuPending
 
 struct ApSeries
 {
-  std::vector<double> timestamps;
-  std::vector<double> values;
+  std::vector<std::pair<double,double>> points;   // interleaved {timestamp, value}
   std::string unit;
+  char        unit_id = '?';
 };
 
 using ApSeriesMap = std::unordered_map<std::string, ApSeries>;
@@ -73,9 +77,13 @@ public:
   const std::vector<ApMessageStats>&   getMessageStats()   const { return _stats;         }
   const std::vector<ApParameter>&      getParameters()     const { return _params;        }
   const std::vector<ApEmbeddedFile>&   getEmbeddedFiles()  const { return _embeddedFiles; }
+  size_t                               getTotalSamples()   const { return _totalSamples;  }
 
 private:
   void parse();
+  bool buildTables();   // pass 1: populate _fmtTable, unit/mult/fmtu tables, data_count
+  void finalizeDefs();  // pre-build series_keys, cache mult_val, init stats, reserve vectors
+  bool decodeData();    // pass 2: decode data packets using pre-built structures
 
   static ApMessageDef buildMessageDef(const uint8_t* payload86);
   static int          fieldByteSize(char c);
@@ -115,7 +123,7 @@ private:
 
   ApSeriesMap                  _series;
   std::vector<ApMessageStats>  _stats;
-  std::unordered_map<std::string, size_t> _statsIndex;
+  size_t                       _totalSamples = 0;
   std::vector<ApParameter>                _params;
   std::unordered_map<std::string, size_t> _paramsIndex;
 
