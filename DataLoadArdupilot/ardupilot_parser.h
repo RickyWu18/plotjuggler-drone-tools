@@ -64,6 +64,12 @@ struct ApEmbeddedFile
   std::vector<uint8_t>  data;
 };
 
+struct ApLogMessage
+{
+  double      timestamp = 0.0;
+  std::string message;
+};
+
 class ArdupilotParser
 {
 public:
@@ -78,6 +84,7 @@ public:
   const std::vector<ApMessageStats>&   getMessageStats()   const { return _stats;         }
   const std::vector<ApParameter>&      getParameters()     const { return _params;        }
   const std::vector<ApEmbeddedFile>&   getEmbeddedFiles()  const { return _embeddedFiles; }
+  const std::vector<ApLogMessage>&     getLogMessages()    const { return _msgLog;        }
   size_t                               getTotalSamples()   const { return _totalSamples;  }
 
 private:
@@ -132,4 +139,5 @@ private:
   std::unordered_map<std::string,
       std::vector<std::pair<uint32_t, std::vector<uint8_t>>>> _fileChunks;
   std::vector<ApEmbeddedFile> _embeddedFiles;
+  std::vector<ApLogMessage>   _msgLog;
 };

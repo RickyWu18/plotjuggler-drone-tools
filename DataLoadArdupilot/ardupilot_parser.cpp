@@ -462,6 +462,24 @@ void ArdupilotParser::parseDataPacket(const uint8_t* payload, const ApMessageDef
     _lastTimestamp = timestamp;
   }
 
+  // Extract MSG text and store with timestamp
+  if (def.name == "MSG")
+  {
+    size_t msg_off = 0;
+    for (const auto& field : def.fields)
+    {
+      if (field.label == "Message" && field.is_string)
+      {
+        const char* s = reinterpret_cast<const char*>(payload + msg_off);
+        std::string text(s, strnlen(s, static_cast<size_t>(field.byte_size)));
+        if (!text.empty())
+          _msgLog.push_back({timestamp, std::move(text)});
+        break;
+      }
+      msg_off += static_cast<size_t>(field.byte_size);
+    }
+  }
+
   // Extract instance index for multi-sensor messages
   int instance = -1;
   if (def.instance_idx >= 0 &&

@@ -160,6 +160,7 @@ bool DataLoadArdupilot::readDataFromFile(PJ::FileLoadInfo* info,
 
   auto* dlg = new ArdupilotInfoDialog(parser.getParameters(),
                                       parser.getEmbeddedFiles(),
+                                      parser.getLogMessages(),
                                       main_window);
   dlg->setWindowTitle(
       QString("ArduPilot log: %1")
