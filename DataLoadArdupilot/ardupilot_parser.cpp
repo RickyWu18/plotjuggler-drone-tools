@@ -11,8 +11,10 @@ static constexpr uint8_t FMT_MSGID      = 128;
 static constexpr int     FMT_PAYLOAD_LEN = 86;
 
 ArdupilotParser::ArdupilotParser(const uint8_t* data, size_t length,
-                                 bool loadFiles, ProgressCallback progressCb)
-  : _data(data), _length(length), _loadFiles(loadFiles), _progressCb(std::move(progressCb))
+                                 bool loadFiles, bool hashInstance,
+                                 ProgressCallback progressCb)
+  : _data(data), _length(length), _loadFiles(loadFiles), _hashInstance(hashInstance),
+    _progressCb(std::move(progressCb))
 {
   // Seed built-in multiplier table so scaling works before MULT packets arrive
   _multTable['?'] = 1.0;
@@ -484,7 +486,7 @@ void ArdupilotParser::parseDataPacket(const uint8_t* payload, const ApMessageDef
     else
     {
       const std::string prefix = (instance >= 0)
-          ? def.name + "/" + std::to_string(instance)
+          ? def.name + "/" + (_hashInstance ? "#" : "") + std::to_string(instance)
           : def.name;
       key_buf = prefix + "/" + field.label;
       key_ptr = &key_buf;

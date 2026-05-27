@@ -25,28 +25,35 @@ bool DataLoadArdupilot::readDataFromFile(PJ::FileLoadInfo* info,
                                          PJ::PlotDataMapRef& dest)
 {
   QSettings pref("DataLoadArdupilot", "settings");
-  bool show_units = pref.value("show_units", false).toBool();
-  bool load_files = pref.value("load_files", true).toBool();
+  bool show_units        = pref.value("show_units", false).toBool();
+  bool load_files        = pref.value("load_files", true).toBool();
+  bool official_compat   = pref.value("official_compat", false).toBool();
 
   {
     QDialog dlg;
     dlg.setWindowTitle("ArduPilot Load Settings");
-    auto* layout    = new QVBoxLayout(&dlg);
-    auto* cb_units  = new QCheckBox("Append units to series names (e.g. Roll \xe2\x86\x92 Roll(deg))", &dlg);
-    auto* cb_files  = new QCheckBox("Load embedded FILE messages (may be slow for large logs)", &dlg);
-    auto* buttons   = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+    auto* layout      = new QVBoxLayout(&dlg);
+    auto* cb_units    = new QCheckBox("Append units to series names (e.g. Roll \xe2\x86\x92 Roll(deg))", &dlg);
+    auto* cb_files    = new QCheckBox("Load embedded FILE messages (may be slow for large logs)", &dlg);
+    auto* cb_official = new QCheckBox("Use official ArduPilot plugin naming format\n"
+                                      "(leading slash and # before instance: ATT/0/Roll \xe2\x86\x92 /ATT/#0/Roll)", &dlg);
+    auto* buttons     = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
     cb_units->setChecked(show_units);
     cb_files->setChecked(load_files);
+    cb_official->setChecked(official_compat);
     layout->addWidget(cb_units);
     layout->addWidget(cb_files);
+    layout->addWidget(cb_official);
     layout->addWidget(buttons);
     QObject::connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
     QObject::connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
     if (dlg.exec() != QDialog::Accepted) return false;
-    show_units = cb_units->isChecked();
-    load_files = cb_files->isChecked();
+    show_units      = cb_units->isChecked();
+    load_files      = cb_files->isChecked();
+    official_compat = cb_official->isChecked();
     pref.setValue("show_units", show_units);
     pref.setValue("load_files", load_files);
+    pref.setValue("official_compat", official_compat);
   }
 
   QFile file(info->filename);
@@ -88,6 +95,7 @@ bool DataLoadArdupilot::readDataFromFile(PJ::FileLoadInfo* info,
       reinterpret_cast<const uint8_t*>(mapped),
       static_cast<size_t>(file_size),
       load_files,
+      official_compat,
       [&](size_t pos, size_t total) -> bool {
         progress_dialog.setValue(static_cast<int>(50.0 * pos / total));
         QApplication::processEvents();
@@ -119,7 +127,9 @@ bool DataLoadArdupilot::readDataFromFile(PJ::FileLoadInfo* info,
       ch == '/' ? unit += "\xe2\x88\x95" : unit += ch;
 
     // D6: build display_key in-place, no extra copy in the false branch
-    std::string display_key = key;
+    std::string display_key;
+    if (official_compat) display_key = "/" + key;
+    else                 display_key = key;
     if (show_units && !unit.empty())
       display_key.append("(").append(unit).append(")");
 

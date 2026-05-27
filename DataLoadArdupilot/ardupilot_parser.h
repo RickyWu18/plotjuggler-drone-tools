@@ -71,6 +71,7 @@ public:
 
   explicit ArdupilotParser(const uint8_t* data, size_t length,
                            bool loadFiles = true,
+                           bool hashInstance = false,
                            ProgressCallback progressCb = nullptr);
 
   const ApSeriesMap&                    getSeriesMap()      const { return _series;        }
@@ -104,9 +105,10 @@ private:
 
   double decodeField(const uint8_t* payload, size_t& offset, char fmt_char);
 
-  const uint8_t* _data      = nullptr;
-  size_t         _length    = 0;
-  bool           _loadFiles = true;
+  const uint8_t* _data         = nullptr;
+  size_t         _length       = 0;
+  bool           _loadFiles    = true;
+  bool           _hashInstance = false;
   ProgressCallback _progressCb;
 
   std::unordered_map<uint8_t, ApMessageDef>  _fmtTable;
