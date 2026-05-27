@@ -67,6 +67,33 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tabMsgs">
+      <attribute name="title">
+       <string>Messages</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="msgsLayout">
+       <item>
+        <widget class="QTableWidget" name="tableMsgs">
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="sortingEnabled">
+          <bool>false</bool>
+         </property>
+         <column>
+          <property name="text">
+           <string>Timestamp (s)</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Message</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+      </layout>
+     </widget>
      <widget class="QWidget" name="tabFiles">
       <attribute name="title">
        <string>Embedded Files</string>

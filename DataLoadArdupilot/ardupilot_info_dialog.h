@@ -16,6 +16,7 @@ class ArdupilotInfoDialog : public QDialog
 public:
   explicit ArdupilotInfoDialog(const std::vector<ApParameter>& params,
                                const std::vector<ApEmbeddedFile>& files,
+                               const std::vector<ApLogMessage>& msgs,
                                QWidget* parent = nullptr);
   ~ArdupilotInfoDialog() override;
 
