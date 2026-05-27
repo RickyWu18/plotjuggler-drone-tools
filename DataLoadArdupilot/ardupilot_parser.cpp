@@ -353,10 +353,7 @@ double ArdupilotParser::float16ToDouble(uint16_t bits)
       uint32_t m = mantissa;
       while (!(m & 0x400)) { m <<= 1; e--; }
       m &= ~0x400u;
-      if (e < 1)
-        f = (sign << 31);
-      else
-        f = (sign << 31) | (static_cast<uint32_t>(e + 127 - 15) << 23) | (m << 13);
+      f = (sign << 31) | (static_cast<uint32_t>(e + 127 - 15) << 23) | (m << 13);
     }
   }
   else if (exponent == 31)
