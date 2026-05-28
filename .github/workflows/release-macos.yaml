@@ -9,15 +9,14 @@ on:
 env:
   PJ_TAG: '3.17.2'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.arch }}
-  cancel-in-progress: true
-
 jobs:
   macos:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.arch }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
