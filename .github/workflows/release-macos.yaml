@@ -34,7 +34,6 @@ jobs:
         with:
           path: drone
           submodules: recursive
-          shallow-submodules: true
 
       - name: Cache PlotJuggler install
         id: cache-pj
@@ -50,10 +49,7 @@ jobs:
             https://github.com/facontidavide/PlotJuggler.git PlotJuggler
 
       - name: Install Qt5 via Homebrew
-        uses: tecolicom/actions-use-homebrew-tools@v1
-        with:
-          tools: qt@5
-          cache: yes
+        run: brew install qt@5
 
       - name: Cache CPM packages
         if: steps.cache-pj.outputs.cache-hit != 'true'

@@ -28,7 +28,6 @@ jobs:
         with:
           path: drone
           submodules: recursive
-          shallow-submodules: true
 
       - name: Cache PlotJuggler install
         id: cache-pj

@@ -27,7 +27,6 @@ jobs:
         with:
           path: drone
           submodules: recursive
-          shallow-submodules: true
 
       - name: Cache PlotJuggler install
         id: cache-pj
@@ -43,20 +42,19 @@ jobs:
             https://github.com/facontidavide/PlotJuggler.git PlotJuggler
 
       - name: Install Qt5 and build dependencies
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: >
-            qtbase5-dev
-            libqt5svg5-dev
-            libqt5websockets5-dev
-            libqt5opengl5-dev
-            libqt5x11extras5-dev
-            libqt5serialport5-dev
-            libprotoc-dev
-            libmosquitto-dev
-            libcurl4-openssl-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qtbase5-dev \
+            libqt5svg5-dev \
+            libqt5websockets5-dev \
+            libqt5opengl5-dev \
+            libqt5x11extras5-dev \
+            libqt5serialport5-dev \
+            libprotoc-dev \
+            libmosquitto-dev \
+            libcurl4-openssl-dev \
             zip
-          version: 1.0
 
       - name: Cache CPM packages
         if: steps.cache-pj.outputs.cache-hit != 'true'
