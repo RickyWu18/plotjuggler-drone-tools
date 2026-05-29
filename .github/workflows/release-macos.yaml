@@ -23,8 +23,6 @@ jobs:
         include:
           - os: macos-14
             arch: arm64
-          - os: macos-13
-            arch: x86_64
     env:
       CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_cache
 
