@@ -49,17 +49,17 @@ Download and install the latest PlotJuggler release from the [official GitHub re
 
 ### 2. Download the plugin
 
-Grab the pre-built plugin binary for your platform from the [Releases](https://github.com/RickyWu18/plotjuggler-drone/releases) page of this repository:
+Grab the pre-built plugin binary for your platform from the [Releases](https://github.com/RickyWu18/plotjuggler-drone/releases) page of this repository.
 
 ### 3. Drop it into the PlotJuggler plugin folder
 
-Place the file in the directory where PlotJuggler looks for plugins:
+Add a custom folder in PlogJuggler Preferences. Or Place the file in the directory where PlotJuggler looks for plugins:
 
 | Platform | Plugin path |
 |---|---|
 | Windows | Same folder as `plotjuggler.exe` (e.g. `C:\Program Files\PlotJuggler\`) |
 | Linux | Same folder as the `plotjuggler` binary (e.g. `/usr/local/bin/`) |
-| | Or add a custom folder in PlogJuggler Preferences. |
+
 
 Restart PlotJuggler. The **Plugin** will load in new session.
 
