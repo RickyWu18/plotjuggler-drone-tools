@@ -19,7 +19,7 @@ PlotJuggler is a fast, open-source time-series visualization tool. This reposito
 | Plugin | Description |
 |---|---|
 | **DataStreamMavlink** | Streams live MAVLink telemetry over UDP, TCP, or Serial into PlotJuggler. Automatically discovers all message fields and populates them as time-series. Includes a built-in **Message Interval** dialog to inspect and tune per-message update rates on the vehicle. |
-| **DataLoadArdupilot** | Loads ArduPilot `.BIN` flight logs directly into PlotJuggler. Parses the binary format, decodes all numeric fields with correct units and multipliers, and optionally appends unit suffixes to series names. Displays a post-load **Parameters** dialog showing all PARM values with regex search and `.param` export. |
+| **DataLoadArdupilot** | Loads ArduPilot `.BIN` flight logs directly into PlotJuggler. All numeric fields are automatically available as plot series, with correct units applied. A post-load dialog shows flight **Parameters**, **Embedded Files**, and **Messages** from the log. |
 
 ### DataStreamMavlink — Feature Highlights
 
@@ -30,10 +30,14 @@ PlotJuggler is a fast, open-source time-series visualization tool. This reposito
 
 ### DataLoadArdupilot — Feature Highlights
 
-- **Native `.bin` parsing:** reads ArduPilot binary logs directly — no conversion step required.
-- **Full field discovery:** decodes FMT, UNIT, MULT, and FMTU packets to map every numeric field to a plot series named `<MSG_NAME>/<field>`.
-- **Unit-aware:** applies ArduPilot unit and multiplier metadata; optionally appends the unit to each series name (e.g. `Roll(deg)`) via a load-time checkbox.
-- **Parameters dialog:** displays all PARM entries from the log (last value per parameter), with live regex search filtering and one-click export to a `.param` file (`<name>,<value>` format).
+- **No conversion needed:** open `.BIN` files directly — no pre-processing or format conversion required.
+- **All fields, correct units:** every numeric field across all message types is automatically available as a plot series, with units and scaling applied. Optionally append the unit to each series name (e.g. `Roll(deg)`) via a checkbox before loading.
+- **Multi-instance sensor support:** sensors with multiple instances (e.g. two GPS units) are kept separate and clearly labelled.
+- **Official naming compat:** an optional checkbox matches the series naming convention used by the official ArduPilot PlotJuggler plugin, so saved layouts and scripts work without changes.
+- **Post-load info dialog** with three tabs:
+  - **Parameters** — all flight parameters from the log, with live search filtering and one-click export to a `.param` file.
+  - **Embedded Files** — any files embedded in the log (e.g. crash dumps, config backups), exportable to a folder.
+  - **Messages** — all flight messages with timestamps.
 
 ---
 
@@ -45,21 +49,17 @@ Download and install the latest PlotJuggler release from the [official GitHub re
 
 ### 2. Download the plugin
 
-Grab the pre-built plugin binary for your platform from the [Releases](https://github.com/RickyWu18/plotjuggler-drone/releases) page of this repository:
-
-| Platform | File |
-|---|---|
-| Windows | `DataStreamMavlink.dll` |
-| Linux | `libDataStreamMavlink.so` |
+Grab the pre-built plugin binary for your platform from the [Releases](https://github.com/RickyWu18/plotjuggler-drone/releases) page of this repository.
 
 ### 3. Drop it into the PlotJuggler plugin folder
 
-Place the file in the directory where PlotJuggler looks for plugins:
+Add a custom folder in PlogJuggler Preferences. Or Place the file in the directory where PlotJuggler looks for plugins:
 
 | Platform | Plugin path |
 |---|---|
 | Windows | Same folder as `plotjuggler.exe` (e.g. `C:\Program Files\PlotJuggler\`) |
 | Linux | Same folder as the `plotjuggler` binary (e.g. `/usr/local/bin/`) |
+
 
 Restart PlotJuggler. The **Plugin** will load in new session.
 
